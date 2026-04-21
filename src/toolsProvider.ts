@@ -202,15 +202,33 @@ export async function toolsProvider(
               let fileExtension: string;
               let fileName: string;
 
-              if (contentType.includes("application/pdf") || isPDFUrl(url)) {
+              const urlFileName = /([^/]+)(?:\?.*)?$/.exec(url)?.[1] || "";
+              const urlExtension = /\.([\w]+)(?:\?.*)?$/.exec(url)?.[1]?.toLowerCase() || "";
+
+              if (contentType.includes("application/pdf") || isPDFUrl(url) || urlExtension === "pdf") {
                 fileExtension = "pdf";
-                fileName = `${index}.pdf`;
+                if (urlFileName.endsWith('.pdf')) {
+                  fileName = urlFileName;
+                } else {
+                  fileName = `${urlFileName}.${fileExtension}`;
+                }
+              } else if (contentType.includes("text/html") || urlExtension === "html") {
+                fileExtension = "html";
+                if (urlFileName.endsWith('.html')) {
+                  fileName = urlFileName;
+                } else {
+                  fileName = `${urlFileName}.${fileExtension}`;
+                }
               } else {
                 fileExtension =
                   /\/([\w]+)/.exec(contentType)?.[1] ||
-                  /\.([\w]+)(?:\?.*)$/.exec(url)?.[1] ||
+                  urlExtension ||
                   "bin";
-                fileName = `${index}.${fileExtension}`;
+                if (urlFileName.endsWith(`.${fileExtension}`)) {
+                  fileName = urlFileName;
+                } else {
+                  fileName = `${urlFileName}.${fileExtension}`;
+                }
               }
 
               const filePath = join(downloadDir, fileName);
@@ -327,11 +345,15 @@ export async function toolsProvider(
 
               const contentType =
                 imageResponse.headers.get("content-type") || "";
+              const urlFileName = /([^/]+)(?:\?.*)?$/.exec(url)?.[1] || "";
+              const urlExtension = /\.([\w]+)(?:\?.*)$/.exec(url)?.[1]?.toLowerCase() || "";
               const fileExtension =
                 /image\/([\w]+)/.exec(contentType)?.[1] ||
-                /\.([\w]+)(?:\?.*)$/.exec(url)?.[1] ||
+                urlExtension ||
                 "jpg";
-              const fileName = `${index}.${fileExtension}`;
+              const fileName = urlFileName.endsWith(`.${fileExtension}`) 
+                ? urlFileName 
+                : `${urlFileName}.${fileExtension}`;
 
               const filePath = join(downloadDir, fileName);
               const localPath = filePath.replace(/\\/g, "/").replace(/^C:/, "");
